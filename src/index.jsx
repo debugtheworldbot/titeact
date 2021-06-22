@@ -21,20 +21,29 @@ const createTextNode = (text) => {
     },
   };
 };
+const createDom = (fiber) => {
+  const dom =
+    fiber.type === "TEXT_ELEMENT"
+      ? document.createTextNode(fiber.props.nodeValue)
+      : document.createElement(fiber.type);
+  const isProperty = (key) => key !== "children";
+  Object.keys(fiber.props)
+    .filter(isProperty)
+    .forEach((k) => (dom[k] = fiber.props[k]));
+  return dom;
+  // for (const child of fiber.props.children) {
+  //   render(child, dom);
+  // }
+  // container.appendChild(dom);
+};
 
 const render = (element, container) => {
-  const dom =
-    element.type === "TEXT_ELEMENT"
-      ? document.createTextNode(element.props.nodeValue)
-      : document.createElement(element.type);
-  const isProperty = (key) => key !== "children";
-  Object.keys(element.props)
-    .filter(isProperty)
-    .forEach((k) => (dom[k] = element.props[k]));
-  for (const child of element.props.children) {
-    render(child, dom);
-  }
-  container.appendChild(dom);
+  nextUnitOfWork = {
+    dom: container,
+    props: {
+      children: [element],
+    },
+  };
 };
 
 let nextUnitOfWork = null;
@@ -47,8 +56,41 @@ const workLoop = (deadline) => {
   requestIdleCallback(workLoop);
 };
 requestIdleCallback(workLoop);
-const performUnitOfWork = (nextUnitOfWork) => {
+const performUnitOfWork = (fiber) => {
   // peform work & return next work
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  }
+  if (fiber.parent) {
+    fiber.parent.dom.appendChild(fiber.dom);
+  }
+  const elements = fiber.props.children;
+  let index = 0;
+  let prevSubling = null;
+  while (index < elements.length) {
+    const element = elements[index];
+    const newFiber = {
+      type: element.type,
+      props: element.props,
+      parent: fiber,
+      dom: null,
+    };
+    if (index === 0) {
+      fiber.child = newFiber;
+    } else {
+      prevSubling.subling = newFiber;
+    }
+    prevSubling = newFiber;
+    index++;
+  }
+  if (fiber.child) {
+    return fiber.child;
+  }
+  let nextFiber = fiber;
+  while (nextFiber) {
+    if (nextFiber.subling) return nextFiber.subling;
+    nextFiber = nextFiber.parent;;
+  }
 };
 const Titeact = {
   createElement,
