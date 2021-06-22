@@ -21,6 +21,7 @@ const createTextNode = (text) => {
     },
   };
 };
+
 const render = (element, container) => {
   const dom =
     element.type === "TEXT_ELEMENT"
@@ -34,6 +35,20 @@ const render = (element, container) => {
     render(child, dom);
   }
   container.appendChild(dom);
+};
+
+let nextUnitOfWork = null;
+const workLoop = (deadline) => {
+  let shouldYield = false;
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+    shouldYield = deadline.timeRemaining() - 1;
+  }
+  requestIdleCallback(workLoop);
+};
+requestIdleCallback(workLoop);
+const performUnitOfWork = (nextUnitOfWork) => {
+  // peform work & return next work
 };
 const Titeact = {
   createElement,
