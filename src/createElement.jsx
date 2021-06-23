@@ -1,3 +1,5 @@
+import {updateDom} from "./updateDom";
+
 const createElement = (type, props, ...children) => {
   return Object.assign(
     {
@@ -26,10 +28,7 @@ const createDom = (fiber) => {
     fiber.type === "TEXT_ELEMENT"
       ? document.createTextNode(fiber.props.nodeValue)
       : document.createElement(fiber.type);
-  const isProperty = (key) => key !== "children";
-  Object.keys(fiber.props)
-    .filter(isProperty)
-    .forEach((k) => (dom[k] = fiber.props[k]));
+  updateDom(dom,{},fiber.props)
   return dom;
 };
 
