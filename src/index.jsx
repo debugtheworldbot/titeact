@@ -1,6 +1,10 @@
 import { createElement, createDom } from "./createElement";
 import {updateDom} from './updateDom'
 
+let nextUnitOfWork = null;
+let wipRoot = null;
+let currentRoot = null;
+let deletions = null;
 const commitRoot = () => {
   deletions.forEach(commitWork);
   commitWork(wipRoot.child);
@@ -33,10 +37,6 @@ const render = (element, container) => {
   nextUnitOfWork = wipRoot;
 };
 
-let nextUnitOfWork = null;
-let wipRoot = null;
-let currentRoot = null;
-let deletions = null;
 const workLoop = (deadline) => {
   let shouldYield = false;
   while (nextUnitOfWork && !shouldYield) {
