@@ -52,6 +52,12 @@ const workLoop = (deadline) => {
 requestIdleCallback(workLoop);
 const performUnitOfWork = (fiber) => {
   // perform work & return next work
+  const isFucComponent = fiber.type instanceof Function
+  if(isFucComponent){
+    updateFucComponent(fiber)
+  }else {
+    updateHostComponent(fiber)
+  }
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
   }
@@ -66,6 +72,19 @@ const performUnitOfWork = (fiber) => {
     nextFiber = nextFiber.parent;
   }
 };
+const updateFucComponent = (fiber) =>{
+  const children = [fiber.type(fiber.props)]
+  reconcileChildren(fiber, children)
+}
+
+const updateHostComponent = (fiber) =>{
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  }
+  const elements = fiber.props.children;
+  reconcileChildren(fiber, elements);
+}
+
 const reconcileChildren = (wipFiber, elements) => {
   let index = 0;
   let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
@@ -117,22 +136,30 @@ const Titeact = {
   render,
 };
 
+// /** @jsx Titeact.createElement */
+// const container = document.getElementById("root");
+//
+// const updateValue = (e) => {
+//   rerender(e.target.value);
+// };
+// const rerender = (value) => {
+//   const element = (
+//     <div id="foo">
+//       <h1>bar</h1>
+//       <h2>foo</h2>
+//       <input type="text" onInput={updateValue} value={value} />
+//       {value}
+//     </div>
+//   );
+//   Titeact.render(element, container);
+// };
+// rerender("hello");
+
+
 /** @jsx Titeact.createElement */
+function App(props) {
+  return <h1>Hi {props.name}</h1>
+}
+const element = <App name="foo" />
 const container = document.getElementById("root");
-
-const updateValue = (e) => {
-  rerender(e.target.value);
-};
-const rerender = (value) => {
-  const element = (
-    <div id="foo">
-      <h1>bar</h1>
-      <h2>foo</h2>
-      <input type="text" onInput={updateValue} value={value} />
-      {value}
-    </div>
-  );
-  Titeact.render(element, container);
-};
-rerender("hello");
-
+Titeact.render(element, container)
