@@ -11,15 +11,26 @@ const commitRoot = () => {
   currentRoot = wipRoot;
   wipRoot = null;
 };
+const commitDeletion = (fiber,parentDom)=>{
+  if(fiber.dom){
+    parentDom.removeChild(fiber.dom)
+  }else {
+    commitDeletion(fiber.child,parentDom)
+  }
+}
 const commitWork = (fiber) => {
   if (!fiber) return;
-  const parentDom = fiber.parent.dom;
+  let parentDomFiber = fiber.parent
+  while (!parentDomFiber.dom){
+    parentDomFiber = parentDomFiber.parent
+  }
+  const parentDom = parentDomFiber.dom
   if (fiber.effectTag === "PLACEMENT" && fiber.dom !== null) {
     parentDom.appendChild(fiber.dom);
   } else if (fiber.effectTag === "UPDATE" && fiber.dom !== null) {
     updateDom(fiber.dom, fiber.alternate.props, fiber.props);
   } else if (fiber.effectTag === "DELETION") {
-    parentDom.removeChild(fiber.dom);
+    commitDeletion(fiber,parentDom)
   }
   commitWork(fiber.child);
   commitWork(fiber.sibling);
@@ -58,11 +69,6 @@ const performUnitOfWork = (fiber) => {
   }else {
     updateHostComponent(fiber)
   }
-  if (!fiber.dom) {
-    fiber.dom = createDom(fiber);
-  }
-  const elements = fiber.props.children;
-  reconcileChildren(fiber, elements);
   if (fiber.child) {
     return fiber.child;
   }
@@ -81,8 +87,7 @@ const updateHostComponent = (fiber) =>{
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
   }
-  const elements = fiber.props.children;
-  reconcileChildren(fiber, elements);
+  reconcileChildren(fiber,fiber.props.children)
 }
 
 const reconcileChildren = (wipFiber, elements) => {
