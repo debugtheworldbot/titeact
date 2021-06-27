@@ -1,4 +1,4 @@
-import { createElement, createDom } from "./createElement";
+import {createElement, createDom} from "./createElement";
 import {updateDom} from './updateDom'
 
 let nextUnitOfWork = null;
@@ -11,17 +11,17 @@ const commitRoot = () => {
   currentRoot = wipRoot;
   wipRoot = null;
 };
-const commitDeletion = (fiber,parentDom)=>{
-  if(fiber.dom){
+const commitDeletion = (fiber, parentDom) => {
+  if (fiber.dom) {
     parentDom.removeChild(fiber.dom)
-  }else {
-    commitDeletion(fiber.child,parentDom)
+  } else {
+    commitDeletion(fiber.child, parentDom)
   }
 }
 const commitWork = (fiber) => {
   if (!fiber) return;
   let parentDomFiber = fiber.parent
-  while (!parentDomFiber.dom){
+  while (!parentDomFiber.dom) {
     parentDomFiber = parentDomFiber.parent
   }
   const parentDom = parentDomFiber.dom
@@ -30,7 +30,7 @@ const commitWork = (fiber) => {
   } else if (fiber.effectTag === "UPDATE" && fiber.dom !== null) {
     updateDom(fiber.dom, fiber.alternate.props, fiber.props);
   } else if (fiber.effectTag === "DELETION") {
-    commitDeletion(fiber,parentDom)
+    commitDeletion(fiber, parentDom)
   }
   commitWork(fiber.child);
   commitWork(fiber.sibling);
@@ -64,9 +64,9 @@ requestIdleCallback(workLoop);
 const performUnitOfWork = (fiber) => {
   // perform work & return next work
   const isFucComponent = fiber.type instanceof Function
-  if(isFucComponent){
+  if (isFucComponent) {
     updateFucComponent(fiber)
-  }else {
+  } else {
     updateHostComponent(fiber)
   }
   if (fiber.child) {
@@ -78,16 +78,13 @@ const performUnitOfWork = (fiber) => {
     nextFiber = nextFiber.parent;
   }
 };
-const updateFucComponent = (fiber) =>{
-  const children = [fiber.type(fiber.props)]
-  reconcileChildren(fiber, children)
-}
 
-const updateHostComponent = (fiber) =>{
+
+const updateHostComponent = (fiber) => {
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
   }
-  reconcileChildren(fiber,fiber.props.children)
+  reconcileChildren(fiber, fiber.props.children)
 }
 
 const reconcileChildren = (wipFiber, elements) => {
@@ -124,47 +121,65 @@ const reconcileChildren = (wipFiber, elements) => {
       oldFiber.effectTag = "DELETION";
       deletions.push(oldFiber);
     }
-    if(oldFiber){
+    if (oldFiber) {
       oldFiber = oldFiber.sibling
     }
     if (index === 0) {
       wipFiber.child = newFiber;
-    } else if(element){
-       prevSibling.sibling = newFiber;
+    } else if (element) {
+      prevSibling.sibling = newFiber;
     }
     prevSibling = newFiber;
     index++;
   }
 };
+let wipFiber = null
+let hookIndex = null
+const updateFucComponent = (fiber) => {
+  wipFiber = fiber
+  hookIndex = 0
+  wipFiber.hooks = []
+  const children = [fiber.type(fiber.props)]
+  reconcileChildren(fiber, children)
+}
+const useState = (initial)=>{
+  const oldHook = wipFiber.alternate && wipFiber.alternate.hooks && wipFiber.alternate.hooks[hookIndex]
+  const hook = {
+    state:oldHook ? oldHook.state : initial,
+    queue:[]
+  }
+  const actions = oldHook ? oldHook.queue : []
+  actions.map(a=>hook.state = a(hook.state))
+  const setState = action=>{
+    hook.queue.push(action)
+    wipRoot = {
+      dom:currentRoot.dom,
+      props:currentRoot.props,
+      alternate:currentRoot
+    }
+    nextUnitOfWork = wipRoot
+    deletions = []
+  }
+  wipFiber.hooks.push(hook)
+  hookIndex ++
+  return [hook.state,setState]
+
+}
 const Titeact = {
   createElement,
   render,
+  useState
 };
 
-// /** @jsx Titeact.createElement */
-// const container = document.getElementById("root");
-//
-// const updateValue = (e) => {
-//   rerender(e.target.value);
-// };
-// const rerender = (value) => {
-//   const element = (
-//     <div id="foo">
-//       <h1>bar</h1>
-//       <h2>foo</h2>
-//       <input type="text" onInput={updateValue} value={value} />
-//       {value}
-//     </div>
-//   );
-//   Titeact.render(element, container);
-// };
-// rerender("hello");
-
-
 /** @jsx Titeact.createElement */
-function App(props) {
-  return <h1>Hi {props.name}</h1>
+const Counter = () => {
+  const [state, setState] = Titeact.useState(1)
+  return (
+    <h1 onClick={() => setState(c => c + 1)}>
+      Count: {state}
+    </h1>
+  )
 }
-const element = <App name="foo" />
-const container = document.getElementById("root");
+const element = <Counter />
+const container = document.getElementById("root")
 Titeact.render(element, container)
